@@ -1,0 +1,22 @@
+{
+  "name": "website-magician",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "API for the Website Magician GPT actions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
