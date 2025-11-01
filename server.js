@@ -2,28 +2,51 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Load .env only in local dev
+// Load .env for local dev
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*", methods: ["GET", "POST", "OPTIONS"] }));
 app.use(express.json());
 
-// 🔒 Authentication middleware
+/* -------------------------------------------------------------------------- */
+/*                             PUBLIC HEALTH ROUTES                           */
+/* -------------------------------------------------------------------------- */
+
+// ✅ Health check
+app.get("/", (req, res) => {
+  res.json({ status: "Website Magician API is alive ✨" });
+});
+
+// 🧪 Debug route to verify environment variable (safe to expose)
+app.get("/debug/env", (req, res) => {
+  const hasToken = !!process.env.MAGICIAN_API_TOKEN;
+  res.json({
+    envDetected: hasToken,
+    tokenLength: hasToken ? process.env.MAGICIAN_API_TOKEN.length : 0,
+    note: hasToken
+      ? "MAGICIAN_API_TOKEN is loaded correctly."
+      : "MAGICIAN_API_TOKEN is missing. Check your Vercel environment variables."
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                             PROTECTED ROUTES                               */
+/* -------------------------------------------------------------------------- */
+
+// 🔒 Middleware for all routes below this line
 app.use((req, res, next) => {
   const auth = req.headers.authorization;
   const expected = `Bearer ${process.env.MAGICIAN_API_TOKEN}`;
   if (auth !== expected) {
-    return res.status(403).json({ error: "Forbidden: Invalid or missing API token" });
+    return res
+      .status(403)
+      .json({ error: "Forbidden: Invalid or missing API token" });
   }
   next();
 });
 
-/* -------------------------------------------------------------------------- */
-/*                                API ROUTES                                  */
-/* -------------------------------------------------------------------------- */
-
-// 🧩 Analyze Website
+// 🧩 Analyze website
 app.post("/api/analyze", async (req, res) => {
   try {
     const { url } = req.body;
@@ -47,7 +70,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ✍️ Generate Copy
+// ✍️ Generate copy
 app.post("/api/copywriter", async (req, res) => {
   try {
     const { audience, goal, tone } = req.body;
@@ -67,7 +90,7 @@ app.post("/api/copywriter", async (req, res) => {
   }
 });
 
-// 📐 Suggest Layout
+// 📐 Suggest layout
 app.post("/api/layout", async (req, res) => {
   try {
     const { site_type, goal } = req.body;
@@ -91,14 +114,15 @@ app.post("/api/layout", async (req, res) => {
   }
 });
 
-// 🧾 Summarize Feedback
+// 🧾 Summarize feedback
 app.post("/api/summarize", async (req, res) => {
   try {
     const { data } = req.body;
     if (!data) return res.status(400).json({ error: "Missing 'data' in request body" });
 
     res.json({
-      summary: "Your homepage loads in 3.2s (a bit slow). SEO score 72 — missing meta descriptions and alt tags.",
+      summary:
+        "Your homepage loads in 3.2s (a bit slow). SEO score 72 — missing meta descriptions and alt tags.",
       recommended_actions: [
         "Compress images",
         "Add alt text to all images",
@@ -112,36 +136,14 @@ app.post("/api/summarize", async (req, res) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/*                           DEBUG / HEALTH ROUTES                            */
-/* -------------------------------------------------------------------------- */
-
-// ✅ Health check
-app.get("/", (req, res) => {
-  res.json({ status: "Website Magician API is alive ✨" });
-});
-
-// 🧪 Debug route to verify environment variable
-app.get("/debug/env", (req, res) => {
-  const hasToken = !!process.env.MAGICIAN_API_TOKEN;
-  res.json({
-    envDetected: hasToken,
-    tokenLength: hasToken ? process.env.MAGICIAN_API_TOKEN.length : 0,
-    port: process.env.PORT || 3001,
-    note: hasToken
-      ? "MAGICIAN_API_TOKEN is loaded correctly."
-      : "MAGICIAN_API_TOKEN is missing. Check your Vercel environment variables."
-  });
-});
-
-/* -------------------------------------------------------------------------- */
 /*                              SERVER STARTUP                                */
 /* -------------------------------------------------------------------------- */
 
-// Vercel auto-detects the exported app as a serverless function handler
+// Vercel uses the exported handler; only start manually if local
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => console.log(`Server running locally on port ${PORT}`));
 }
 
-// Export app for Vercel
+// Export for Vercel’s serverless function handler
 export default app;
